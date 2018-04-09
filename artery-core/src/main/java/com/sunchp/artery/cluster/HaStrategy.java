@@ -2,7 +2,7 @@ package com.sunchp.artery.cluster;
 
 import com.sunchp.artery.rpc.Request;
 import com.sunchp.artery.rpc.ResponsePromise;
-import com.sunchp.artery.transport.Client;
+import com.sunchp.artery.transport.client.Client;
 
 import java.util.List;
 

@@ -5,14 +5,12 @@ import com.sunchp.artery.registry.discovery.ZookeeperServer;
 import com.sunchp.artery.registry.discovery.ZookeeperServerList;
 import com.sunchp.artery.rpc.Request;
 import com.sunchp.artery.rpc.ResponsePromise;
-import com.sunchp.artery.transport.Client;
 import com.sunchp.artery.transport.TransportException;
-import com.sunchp.artery.transport.netty.NettyClient;
+import com.sunchp.artery.transport.client.Client;
 import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -62,11 +60,10 @@ public class DefaultCluster<T> extends ZookeeperServerList<T> implements Cluster
             if (client == null) {
                 continue;
             }
-            LOGGER.debug("Cluster addClient [{}]", client.getRemoteAddress());
             try {
                 client.start();
                 allClients.add(client);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 rethrowRuntimeException(e);
             }
         }
@@ -80,12 +77,16 @@ public class DefaultCluster<T> extends ZookeeperServerList<T> implements Cluster
         this.clients = allClients;
 
         for (Client client : oldClients) {
-            client.shutdown();
+            try {
+                client.stop();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
     @Override
-    public ResponsePromise call(Request request) throws TransportException {
+    public ResponsePromise send(Request request) throws TransportException {
         try {
             return haStrategy.call(request, loadBalance, getClients());
         } catch (Exception e) {
@@ -106,7 +107,7 @@ public class DefaultCluster<T> extends ZookeeperServerList<T> implements Cluster
 
         List<Client> result = new ArrayList<>();
         for (ZookeeperServer server : servers) {
-            result.add(new NettyClient(server.getAddress(), 1));
+            result.add(new Client(server.getAddress().getHostString(), server.getAddress().getPort()));
         }
 
         return result;

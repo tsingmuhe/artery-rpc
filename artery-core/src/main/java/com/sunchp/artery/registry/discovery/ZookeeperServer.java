@@ -1,15 +1,16 @@
 package com.sunchp.artery.registry.discovery;
 
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
 public class ZookeeperServer {
-    private SocketAddress address;
+    private InetSocketAddress address;
 
-    public ZookeeperServer(SocketAddress address) {
+    public ZookeeperServer(InetSocketAddress address) {
         this.address = address;
     }
 
-    public SocketAddress getAddress() {
+    public InetSocketAddress getAddress() {
         return address;
     }
 }

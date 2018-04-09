@@ -24,7 +24,7 @@ public class RefererInvocationHandler<T> extends AbstractInvocationHandler {
         request.setParameterTypes(method.getParameterTypes());
         request.setParameters(args);
 
-        ResponsePromise responsePromise = cluster.call(request);
+        ResponsePromise responsePromise = cluster.send(request);
         return responsePromise.get();
     }
 }

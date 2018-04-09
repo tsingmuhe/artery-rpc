@@ -2,11 +2,12 @@ package com.sunchp.artery.rpc;
 
 import com.sunchp.artery.exporter.Invocation;
 import com.sunchp.artery.exporter.InvocationResult;
+import com.sunchp.artery.transport.server.handler.AbstractHandler;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class ExporterRegistry {
+public class ExporterRegistry extends AbstractHandler {
     private final ConcurrentMap<String, Exporter<?>> map = new ConcurrentHashMap();
 
     public void addExporter(Exporter<?> exporter) {
@@ -17,7 +18,8 @@ public class ExporterRegistry {
         map.put(exporter.getName(), exporter);
     }
 
-    public void handleRequest(Request request, Response response) {
+    @Override
+    public void handle(Request request, Response response) {
         Exporter exporter = readExporter(request);
         Invocation invocation = readInvocation(request);
         InvocationResult result = exporter.invokeAndCreateResult(invocation);

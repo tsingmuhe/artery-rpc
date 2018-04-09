@@ -8,8 +8,7 @@ import com.sunchp.artery.registry.ZookeeperDiscoveryProperties;
 import com.sunchp.artery.registry.ZookeeperInstance;
 import com.sunchp.artery.registry.serviceregistry.ZookeeperRegistration;
 import com.sunchp.artery.registry.serviceregistry.ZookeeperServiceRegistry;
-import com.sunchp.artery.transport.Server;
-import com.sunchp.artery.transport.ServerBuilder;
+import com.sunchp.artery.transport.server.Server;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -17,13 +16,11 @@ import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
 import org.apache.curator.x.discovery.details.InstanceSerializer;
 import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
-import org.junit.Test;
 
-import java.io.IOException;
+import java.net.InetSocketAddress;
 
 public class ExporterTest {
-    @Test
-    public void test() throws Exception {
+    public static void main(String[] args) throws Exception {
         CuratorFramework curator = CuratorFrameworkFactory.newClient("127.0.0.1", new ExponentialBackoffRetry(1000, 3));
         curator.start();
         curator.blockUntilConnected();
@@ -39,9 +36,12 @@ public class ExporterTest {
         registry.register(registration);
 
         Exporter<HelloService> helloService = new DefaultExporter<>(HelloService.class, new HelloServiceImpl());
-        Server server = ServerBuilder.forPort(8080).addService(helloService).build();
-        server.start();
+        ExporterRegistry exporterRegistry = new ExporterRegistry();
+        exporterRegistry.addExporter(helloService);
 
-        Thread.sleep(Integer.MAX_VALUE);
+        Server server = new Server(new InetSocketAddress("127.0.0.1", 8080));
+        server.setHandler(exporterRegistry);
+
+        server.start();
     }
 }

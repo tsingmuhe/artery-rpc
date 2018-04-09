@@ -2,7 +2,7 @@ package com.sunchp.artery.cluster.lb;
 
 import com.sunchp.artery.cluster.LoadBalance;
 import com.sunchp.artery.rpc.Request;
-import com.sunchp.artery.transport.Client;
+import com.sunchp.artery.transport.client.Client;
 import com.sunchp.artery.utils.RandomNumeric;
 
 import java.util.List;

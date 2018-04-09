@@ -16,6 +16,9 @@ import org.apache.curator.x.discovery.details.InstanceSerializer;
 import org.apache.curator.x.discovery.details.JsonInstanceSerializer;
 import org.junit.Test;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class RefererTest {
     @Test
     public void test1() throws Exception {
@@ -28,7 +31,6 @@ public class RefererTest {
         ServiceDiscoveryCustomizer customizer = new ServiceDiscoveryCustomizer(curator, properties, instanceSerializer);
         ServiceDiscovery<ZookeeperInstance> serviceDiscovery = customizer.customize(ServiceDiscoveryBuilder.builder(ZookeeperInstance.class));
         serviceDiscovery.start();
-
 
         Referer<HelloService> referer = new DefaultReferer<>(HelloService.class, new JdkProxyFactory(), serviceDiscovery);
         HelloService helloService = referer.getProxy();
