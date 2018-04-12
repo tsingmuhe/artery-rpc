@@ -6,10 +6,8 @@ import com.sunchp.artery.registry.discovery.ZookeeperServerList;
 import com.sunchp.artery.rpc.Request;
 import com.sunchp.artery.rpc.ResponsePromise;
 import com.sunchp.artery.transport.TransportException;
-import com.sunchp.artery.transport.client.Client;
+import com.sunchp.artery.transport.client.netty.NettyClient;
 import org.apache.curator.x.discovery.ServiceDiscovery;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,12 +16,10 @@ import java.util.List;
 import static com.sunchp.artery.utils.ReflectionUtils.rethrowRuntimeException;
 
 public class DefaultCluster<T> extends ZookeeperServerList<T> implements Cluster<T> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultCluster.class);
-
     private final HaStrategy haStrategy;
     private final LoadBalance loadBalance;
 
-    private volatile List<Client> clients = new ArrayList<>();
+    private volatile List<NettyClient> clients = new ArrayList<>();
 
     public DefaultCluster(Class<T> serviceInterface, ServiceDiscovery<ZookeeperInstance> serviceDiscovery, HaStrategy haStrategy, LoadBalance loadBalance) {
         super(serviceInterface, serviceDiscovery);
@@ -32,7 +28,7 @@ public class DefaultCluster<T> extends ZookeeperServerList<T> implements Cluster
     }
 
     @Override
-    public void init() {
+    protected void doStart() throws Exception {
         List<ZookeeperServer> initServers = getInitialListOfServers();
         setClients(resovleClients(initServers));
     }
@@ -48,15 +44,15 @@ public class DefaultCluster<T> extends ZookeeperServerList<T> implements Cluster
     }
 
     @Override
-    public List<Client> getClients() {
+    public List<NettyClient> getClients() {
         return Collections.unmodifiableList(clients);
     }
 
-    public void setClients(List<Client> updateClients) {
-        ArrayList<Client> oldClients = new ArrayList<Client>();
-        ArrayList<Client> allClients = new ArrayList<Client>();
+    public void setClients(List<NettyClient> updateClients) {
+        ArrayList<NettyClient> oldClients = new ArrayList<NettyClient>();
+        ArrayList<NettyClient> allClients = new ArrayList<NettyClient>();
 
-        for (Client client : updateClients) {
+        for (NettyClient client : updateClients) {
             if (client == null) {
                 continue;
             }
@@ -68,7 +64,7 @@ public class DefaultCluster<T> extends ZookeeperServerList<T> implements Cluster
             }
         }
 
-        for (Client client : clients) {
+        for (NettyClient client : clients) {
             if (!allClients.contains(client)) {
                 oldClients.add(client);
             }
@@ -76,7 +72,7 @@ public class DefaultCluster<T> extends ZookeeperServerList<T> implements Cluster
 
         this.clients = allClients;
 
-        for (Client client : oldClients) {
+        for (NettyClient client : oldClients) {
             try {
                 client.stop();
             } catch (Exception e) {
@@ -100,14 +96,14 @@ public class DefaultCluster<T> extends ZookeeperServerList<T> implements Cluster
         setClients(resovleClients(updatedServers));
     }
 
-    private List<Client> resovleClients(List<ZookeeperServer> servers) {
+    private List<NettyClient> resovleClients(List<ZookeeperServer> servers) {
         if (servers == null || servers.size() == 0) {
             return Collections.EMPTY_LIST;
         }
 
-        List<Client> result = new ArrayList<>();
+        List<NettyClient> result = new ArrayList<>();
         for (ZookeeperServer server : servers) {
-            result.add(new Client(server.getAddress().getHostString(), server.getAddress().getPort()));
+            result.add(new NettyClient(server.getAddress()));
         }
 
         return result;

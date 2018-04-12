@@ -1,11 +1,15 @@
 package com.sunchp.artery.transport.client;
 
+import com.sunchp.artery.transport.codec.NettyMessage;
 import com.sunchp.artery.utils.Promise;
+import com.sunchp.artery.utils.component.LifeCycle;
 
-public interface Destination {
-    String getHost();
+import java.net.InetSocketAddress;
 
-    int getPort();
+public interface Destination extends LifeCycle {
+    InetSocketAddress getRemoteAddress();
 
-    void newConnection(Promise<Connection> promise);
+    Connection newConnection();
+
+    public void processMessage(NettyMessage msg);
 }

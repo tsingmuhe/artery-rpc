@@ -1,4 +1,3 @@
-
 package com.sunchp.artery.springsupport.annotation;
 
 import org.springframework.stereotype.Component;

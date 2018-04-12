@@ -1,6 +1,8 @@
-package com.sunchp.artery.springsupport.api;
+package com.sunchp.artery.springsupport.impl;
 
 import com.sunchp.artery.springsupport.annotation.ArteryService;
+import com.sunchp.artery.springsupport.api.HelloService;
+import com.sunchp.artery.springsupport.api.Person;
 
 @ArteryService(interfaceClass = HelloService.class)
 public class HelloServiceImpl implements HelloService {

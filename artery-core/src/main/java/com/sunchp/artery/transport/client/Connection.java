@@ -7,9 +7,4 @@ import java.io.Closeable;
 
 public interface Connection extends Closeable {
     ResponsePromise send(Request request);
-
-    @Override
-    void close();
-
-    boolean isClosed();
 }

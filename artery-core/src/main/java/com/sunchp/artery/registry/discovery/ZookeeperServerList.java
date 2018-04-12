@@ -2,6 +2,7 @@ package com.sunchp.artery.registry.discovery;
 
 import com.sunchp.artery.registry.ZookeeperInstance;
 import com.sunchp.artery.utils.ReflectionUtils;
+import com.sunchp.artery.utils.component.AbstractLifeCycle;
 import org.apache.curator.x.discovery.ServiceCache;
 import org.apache.curator.x.discovery.ServiceDiscovery;
 import org.apache.curator.x.discovery.ServiceInstance;
@@ -14,7 +15,7 @@ import java.util.List;
 
 import static com.sunchp.artery.utils.ReflectionUtils.rethrowRuntimeException;
 
-public class ZookeeperServerList<T> implements ServerList<T> {
+public class ZookeeperServerList<T> extends AbstractLifeCycle implements ServerList<T> {
     private final Class<T> serviceInterface;
     private final ServiceDiscovery<ZookeeperInstance> serviceDiscovery;
     private ServiceCache<ZookeeperInstance> serviceCache;

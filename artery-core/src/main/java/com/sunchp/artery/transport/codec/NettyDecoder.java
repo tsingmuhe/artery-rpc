@@ -1,5 +1,6 @@
 package com.sunchp.artery.transport.codec;
 
+import com.sunchp.artery.transport.TransportException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -21,7 +22,7 @@ public class NettyDecoder extends ByteToMessageDecoder {
         short magic = in.readShort();
         if (magic != NETTY_MAGIC) {
             in.resetReaderIndex();
-            throw new RuntimeException("NettyDecoder transport header not support, magic: " + magic);
+            throw new TransportException("NettyDecoder transport header not support, magic: " + magic);
         }
 
         int bodySize = in.readInt();

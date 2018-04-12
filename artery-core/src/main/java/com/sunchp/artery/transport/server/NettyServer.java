@@ -1,12 +1,13 @@
 package com.sunchp.artery.transport.server;
 
-import com.sunchp.artery.rpc.Request;
-import com.sunchp.artery.rpc.Response;
+import com.sunchp.artery.exporter.DefaultExporterContainer;
 import com.sunchp.artery.transport.codec.NettyDecoder;
 import com.sunchp.artery.transport.codec.NettyEncoder;
+import com.sunchp.artery.transport.codec.NettyMessage;
 import com.sunchp.artery.transport.server.handler.Handler;
-import com.sunchp.artery.transport.server.handler.HandlerWrapper;
+import com.sunchp.artery.transport.server.handler.ThreadPoolExporterContainerHandler;
 import com.sunchp.artery.utils.QueuedThreadPool;
+import com.sunchp.artery.utils.component.AbstractLifeCycle;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -17,23 +18,33 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
-public class Server extends HandlerWrapper {
-    private static final Logger LOG = LoggerFactory.getLogger(Server.class);
+public class NettyServer extends AbstractLifeCycle implements Handler {
+    private static final Logger LOG = LoggerFactory.getLogger(NettyServer.class);
 
-    private final QueuedThreadPool _threadPool;
-    private final InetSocketAddress addr;
+    private final InetSocketAddress address;
+    private final QueuedThreadPool threadPool;
+    private final Handler handler;
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
 
-    public Server(InetSocketAddress addr) {
-        this(addr, (QueuedThreadPool) null);
+    public NettyServer(InetSocketAddress address) {
+        this(address, (QueuedThreadPool) null, (Handler) null);
     }
 
-    public Server(InetSocketAddress addr, QueuedThreadPool pool) {
-        this.addr = addr;
-        _threadPool = pool != null ? pool : new QueuedThreadPool();
+    public NettyServer(InetSocketAddress address, Handler handler) {
+        this(address, (QueuedThreadPool) null, handler);
+    }
+
+    public NettyServer(InetSocketAddress address, QueuedThreadPool threadPool, Handler handler) {
+        this.address = address;
+        this.threadPool = threadPool != null ? threadPool : new QueuedThreadPool();
+        this.handler = handler != null ? handler : new ThreadPoolExporterContainerHandler(new DefaultExporterContainer(), this.threadPool);
+    }
+
+    public QueuedThreadPool getThreadPool() {
+        return this.threadPool;
     }
 
     @Override
@@ -52,7 +63,7 @@ public class Server extends HandlerWrapper {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast("decoder", new NettyDecoder());
                         pipeline.addLast("encoder", new NettyEncoder());
-                        pipeline.addLast("handler", new NettyServerChannelHandler(Server.this));
+                        pipeline.addLast("handler", new NettyServerChannelAdapter(NettyServer.this));
                     }
                 });
 
@@ -60,7 +71,7 @@ public class Server extends HandlerWrapper {
         serverBootstrap.childOption(ChannelOption.TCP_NODELAY, true);
         serverBootstrap.childOption(ChannelOption.SO_KEEPALIVE, true);
 
-        ChannelFuture future = serverBootstrap.bind(addr).sync();
+        ChannelFuture future = serverBootstrap.bind(this.address).sync();
         serverChannel = future.channel();
     }
 
@@ -74,6 +85,7 @@ public class Server extends HandlerWrapper {
                 workerGroup.shutdownGracefully();
                 bossGroup = null;
                 workerGroup = null;
+                threadPool.shutdownNow();
             }
         } catch (Exception e) {
             LOG.error("NettyServer close Error.", e);
@@ -81,20 +93,7 @@ public class Server extends HandlerWrapper {
     }
 
     @Override
-    public void handle(Request request, Response response) {
-        Handler handler = _handler;
-        if (handler != null) {
-            _threadPool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    handler.handle(request, response);
-                }
-            });
-        }
-    }
-
-    @Override
-    public Handler[] getHandlers() {
-        return new Handler[0];
+    public void handle(ChannelHandlerContext ctx, NettyMessage msg) {
+        this.handler.handle(ctx, msg);
     }
 }

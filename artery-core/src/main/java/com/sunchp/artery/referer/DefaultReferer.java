@@ -9,8 +9,12 @@ import com.sunchp.artery.proxy.jdk.RefererInvocationHandler;
 import com.sunchp.artery.registry.ZookeeperInstance;
 import com.sunchp.artery.rpc.Referer;
 import org.apache.curator.x.discovery.ServiceDiscovery;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultReferer<T> implements Referer<T> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultReferer.class);
+
     private final Class<T> serviceInterface;
     private final ProxyFactory proxyFactory;
     private final ServiceDiscovery<ZookeeperInstance> serviceDiscovery;
@@ -48,10 +52,14 @@ public class DefaultReferer<T> implements Referer<T> {
             return;
         }
 
-        this.cluster = new DefaultCluster(this.serviceInterface, serviceDiscovery, new FailfastHaStrategy(), new RandomLoadBalance());
-        this.cluster.init();
-        this.cluster.watch();
-        this.proxy = this.proxyFactory.getProxy(this.serviceInterface, new RefererInvocationHandler(cluster));
-        initialized = true;
+        try {
+            this.cluster = new DefaultCluster(this.serviceInterface, serviceDiscovery, new FailfastHaStrategy(), new RandomLoadBalance());
+            this.cluster.start();
+            this.cluster.watch();
+            this.proxy = this.proxyFactory.getProxy(this.serviceInterface, new RefererInvocationHandler(cluster));
+            initialized = true;
+        } catch (Exception e) {
+            LOGGER.error("", e);
+        }
     }
 }

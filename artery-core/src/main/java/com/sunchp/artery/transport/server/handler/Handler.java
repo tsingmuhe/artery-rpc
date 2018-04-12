@@ -1,15 +1,8 @@
 package com.sunchp.artery.transport.server.handler;
 
-import com.sunchp.artery.rpc.Request;
-import com.sunchp.artery.rpc.Response;
-import com.sunchp.artery.transport.server.Server;
-import com.sunchp.artery.utils.component.Destroyable;
-import com.sunchp.artery.utils.component.LifeCycle;
+import com.sunchp.artery.transport.codec.NettyMessage;
+import io.netty.channel.ChannelHandlerContext;
 
-public interface Handler extends LifeCycle, Destroyable {
-    public void handle(Request request, Response response);
-
-    public void setServer(Server server);
-
-    public Server getServer();
+public interface Handler {
+    public void handle(ChannelHandlerContext ctx, NettyMessage msg);
 }

@@ -1,10 +1,10 @@
 package com.sunchp.artery.cluster;
 
 import com.sunchp.artery.rpc.Request;
-import com.sunchp.artery.transport.client.Client;
+import com.sunchp.artery.transport.client.netty.NettyClient;
 
 import java.util.List;
 
 public interface LoadBalance {
-    Client select(Request request, List<Client> clients);
+    NettyClient select(Request request, List<NettyClient> clients);
 }

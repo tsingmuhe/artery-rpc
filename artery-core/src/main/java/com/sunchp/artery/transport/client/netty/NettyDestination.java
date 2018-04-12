@@ -1,9 +1,13 @@
-package com.sunchp.artery.transport.client;
+package com.sunchp.artery.transport.client.netty;
 
+import com.sunchp.artery.rpc.Response;
 import com.sunchp.artery.rpc.ResponsePromise;
+import com.sunchp.artery.serialize.ProtobufSerializeUtils;
+import com.sunchp.artery.transport.client.Connection;
+import com.sunchp.artery.transport.client.Destination;
 import com.sunchp.artery.transport.codec.NettyDecoder;
 import com.sunchp.artery.transport.codec.NettyEncoder;
-import com.sunchp.artery.utils.Promise;
+import com.sunchp.artery.transport.codec.NettyMessage;
 import com.sunchp.artery.utils.component.AbstractLifeCycle;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -13,21 +17,23 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class NettyDestination extends AbstractLifeCycle implements Destination {
-    private final String host;
-    private final int port;
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(NettyDestination.class);
     private static final NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+
+    private final InetSocketAddress address;
     private final ConcurrentMap<String, ResponsePromise> callbackMap = new ConcurrentHashMap<String, ResponsePromise>();
     private Bootstrap bootstrap;
 
-    public NettyDestination(String host, int port) {
-        this.host = host;
-        this.port = port;
+    public NettyDestination(InetSocketAddress address) {
+        this.address = address;
     }
 
     protected void doStart() throws Exception {
@@ -43,7 +49,7 @@ public class NettyDestination extends AbstractLifeCycle implements Destination {
                         ChannelPipeline pipeline = ch.pipeline();
                         pipeline.addLast("decoder", new NettyDecoder());
                         pipeline.addLast("encoder", new NettyEncoder());
-                        pipeline.addLast("handler", new NettyClientChannelHandler(callbackMap));
+                        pipeline.addLast("handler", new NettyDestinationChannelAdapter(NettyDestination.this));
                     }
                 });
     }
@@ -53,32 +59,20 @@ public class NettyDestination extends AbstractLifeCycle implements Destination {
     }
 
     @Override
-    public String getHost() {
-        return this.host;
+    public InetSocketAddress getRemoteAddress() {
+        return this.address;
     }
 
     @Override
-    public int getPort() {
-        return this.port;
-    }
-
-    @Override
-    public void newConnection(Promise<Connection> promise) {
+    public Connection newConnection() {
         try {
-            ChannelFuture future = bootstrap.connect(host, port).sync();
-            promise.succeeded(new NettyConnection(future.channel(), this));
-        } catch (InterruptedException e) {
-            promise.failed(e);
-        }
-    }
-
-    public NettyConnection newConnection() {
-        try {
-            ChannelFuture future = bootstrap.connect(host, port).sync();
+            ChannelFuture future = bootstrap.connect(this.address).sync();
             return new NettyConnection(future.channel(), this);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            LOGGER.error("", e);
         }
+
+        return null;
     }
 
     public void registerCallback(String requestId, ResponsePromise responsePromise) {
@@ -87,5 +81,24 @@ public class NettyDestination extends AbstractLifeCycle implements Destination {
 
     public ResponsePromise removeCallback(String requestId) {
         return callbackMap.remove(requestId);
+    }
+
+    public void processMessage(NettyMessage msg) {
+        try {
+            Response response = ProtobufSerializeUtils.deserialize(msg.getData(), Response.class);
+            ResponsePromise responsePromise = callbackMap.remove(response.getRequestId());
+
+            if (responsePromise == null) {
+                LOGGER.warn("NettyClient has response from server, but responseFuture not exist, requestId={}", response.getRequestId());
+                return;
+            }
+            if (response.getException() != null) {
+                responsePromise.failed(response.getException());
+            } else {
+                responsePromise.succeeded(response.getValue());
+            }
+        } catch (Exception e) {
+            LOGGER.error("", e);
+        }
     }
 }

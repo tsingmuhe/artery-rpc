@@ -8,7 +8,7 @@ import com.sunchp.artery.registry.ZookeeperDiscoveryProperties;
 import com.sunchp.artery.registry.ZookeeperInstance;
 import com.sunchp.artery.registry.serviceregistry.ZookeeperRegistration;
 import com.sunchp.artery.registry.serviceregistry.ZookeeperServiceRegistry;
-import com.sunchp.artery.transport.server.Server;
+import com.sunchp.artery.transport.server.NettyServer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -36,12 +36,7 @@ public class ExporterTest {
         registry.register(registration);
 
         Exporter<HelloService> helloService = new DefaultExporter<>(HelloService.class, new HelloServiceImpl());
-        ExporterRegistry exporterRegistry = new ExporterRegistry();
-        exporterRegistry.addExporter(helloService);
-
-        Server server = new Server(new InetSocketAddress("127.0.0.1", 8080));
-        server.setHandler(exporterRegistry);
-
+        NettyServer server = new NettyServer(new InetSocketAddress("127.0.0.1", 8080));
         server.start();
     }
 }
