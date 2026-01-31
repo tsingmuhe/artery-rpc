@@ -3,6 +3,7 @@ package server
 import "github.com/tsingmuhe/artery-rpc/transport"
 
 type Options struct {
+	Address   string
 	Transport transport.Transport
 }
 

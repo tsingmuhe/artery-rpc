@@ -1,18 +1,16 @@
 package transport
 
-var (
-	DefaultTransport = newMeshTransport()
-)
+import "net"
 
 type Transport interface {
-	Listen(addr string) (Listener, error)
-	Dial(addr string) (Socket, error)
+	Listen(addr net.Addr) (Listener, error)
+	Dial(addr net.Addr) (Conn, error)
 }
 
 type Listener interface {
+	Serve(func(Conn)) error
 	Addr() string
 	Close() error
-	Accept(func(Socket)) error
 }
 
 type Message struct {
@@ -20,7 +18,7 @@ type Message struct {
 	Body   []byte
 }
 
-type Socket interface {
+type Conn interface {
 	Send(*Message) error
 	Recv(*Message) error
 	Local() string

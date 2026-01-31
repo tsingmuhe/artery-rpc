@@ -7,7 +7,6 @@ import (
 
 type service struct {
 	name string
-
 	opts Options
 }
 
