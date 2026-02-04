@@ -1,13 +1,8 @@
 package server
 
 import (
-	"context"
-
 	"github.com/tsingmuhe/artery-rpc/codec"
-)
-
-var (
-	DefaultServer = newRPCServer()
+	"github.com/tsingmuhe/artery-rpc/service"
 )
 
 type Server interface {
@@ -16,9 +11,13 @@ type Server interface {
 	Stop() error
 }
 
-type Router interface {
-	Handle(Handler) error
-	ServeRequest(context.Context, Request, Response) error
+func NewRPCServer(opts ...Option) Server {
+	return service.New(name, opts...)
+}
+
+type Handler interface {
+	Name() string
+	Handler() interface{}
 }
 
 type Request interface {
